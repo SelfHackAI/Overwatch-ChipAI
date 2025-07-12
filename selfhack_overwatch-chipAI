@@ -1,0 +1,186 @@
+import argparse
+import os
+import json
+import cv2
+import openai
+import numpy as np
+import base64
+import requests
+from bs4 import BeautifulSoup
+import pytesseract
+from rich.console import Console
+from rich import print as rprint
+from rich.markup import escape
+from rich.table import Table
+
+# === Config ===
+openai.api_key = os.getenv("OPENAI_API_KEY") or "OPENAI_API_KEY"
+console = Console()
+
+SYSTEM_PROMPT = """
+You are a senior hardware security analyst specializing in IoT embedded systems.
+
+You must:
+1. Analyze the attached PCB image and OCR markings.
+2. Identify all visible ICs and components.
+3. Determine their function (MCU, memory, radio, power, etc.).
+4. Suggest interfaces (UART, JTAG, SPI, etc.) from pad clusters.
+5. Based on markings only (not external links), provide likely role of each chip.
+6. Identify potential attack surfaces or debug interfaces.
+7. Finish with [Identified Components], [Attack Surfaces], [Suggestions].
+"""
+
+def print_banner():
+    rprint("[bold magenta]\nSelfHack AI - IoT Chip Analyzer\n[/bold magenta]")
+
+def preprocess_image(image_path):
+    img = cv2.imread(image_path)
+    if img is None:
+        raise ValueError(f"❌ Cannot load image from: {image_path}")
+    return cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
+def encode_image(img_rgb):
+    _, buffer = cv2.imencode('.jpg', cv2.cvtColor(img_rgb, cv2.COLOR_RGB2BGR))
+    return base64.b64encode(buffer).decode()
+
+def ocr_chip_markings(img_rgb):
+    gray = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2GRAY)
+    text = pytesseract.image_to_string(gray)
+    markings = list(set([line.strip() for line in text.split("\n") if len(line.strip()) > 4]))
+    rprint("[bold yellow]🔠 OCR Extracted Markings:[/bold yellow]")
+    for mark in markings:
+        rprint(f"  • {mark}")
+    return markings
+
+def search_datasheet_online(marking):
+    query = f"{marking} datasheet"
+    headers = {"User-Agent": "Mozilla/5.0"}
+    try:
+        r = requests.get(f"https://www.google.com/search?q={query}", headers=headers, timeout=10)
+        soup = BeautifulSoup(r.text, "html.parser")
+        links = []
+        for a in soup.find_all("a", href=True):
+            href = a["href"]
+            if "/url?q=" in href and "datasheet" in href:
+                clean_link = href.split("/url?q=")[-1].split("&")[0]
+                if clean_link.startswith("http"):
+                    links.append(clean_link)
+        return links[:3] if links else ["No datasheet found."]
+    except Exception as e:
+        return [f"Error: {str(e)}"]
+
+def analyze_with_gpt(img_rgb, ocr_data):
+    b64_img = encode_image(img_rgb)
+    prompt = "Here are the OCR markings from the PCB:\n" + "\n".join(ocr_data)
+    response = openai.chat.completions.create(
+        model="gpt-4.1",
+        messages=[
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": [
+                {"type": "text", "text": prompt},
+                {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{b64_img}"}}
+            ]}
+        ],
+        max_tokens=1500
+    )
+    return response.choices[0].message.content
+
+def validate_analysis_gpt(original_text):
+    rprint("\n[bold cyan]🔁 Revalidating analysis with second AI pass...[/bold cyan]")
+    response = openai.chat.completions.create(
+        model="gpt-4.1",
+        messages=[
+            {"role": "system", "content": "You are validating a hardware analysis for correctness."},
+            {"role": "user", "content": original_text}
+        ],
+        max_tokens=800
+    )
+    return response.choices[0].message.content
+
+def try_show_summary_tables(text):
+    sections = {"Identified Components": [], "Attack Surfaces": [], "Suggestions": []}
+    current = None
+
+    for line in text.split("\n"):
+        l = line.strip()
+        if "Identified Components" in l:
+            current = "Identified Components"
+            continue
+        elif "Attack Surfaces" in l:
+            current = "Attack Surfaces"
+            continue
+        elif "Suggestions" in l:
+            current = "Suggestions"
+            continue
+        elif current and l and not l.lower().startswith("summary"):
+            sections[current].append(l.strip("•- "))
+
+    for section, items in sections.items():
+        if items:
+            table = Table(title=section)
+            table.add_column("Item", style="cyan")
+            for i in items:
+                table.add_row(i)
+            console.print(table)
+
+def format_output(text):
+    console.rule("[bold green]📄 AI Analysis Report")
+    for line in text.split("\n"):
+        if any(key in line for key in ["Attack Surface", "Suggestions"]):
+            rprint(f"[bold red]{escape(line)}[/bold red]")
+        elif "Identified" in line:
+            rprint(f"[bold yellow]{escape(line)}[/bold yellow]")
+        else:
+            rprint(escape(line))
+    try_show_summary_tables(text)
+
+def chat_loop(context):
+    console.print("\n[bold cyan]💬 Q&A Mode: Type 'exit' to quit.[/bold cyan]")
+    while True:
+        q = input("> ")
+        if q.strip().lower() in ["exit", "quit"]:
+            break
+        response = openai.chat.completions.create(
+            model="gpt-4.1",
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": context},
+                {"role": "user", "content": q}
+            ],
+            max_tokens=700
+        )
+        rprint(f"[green]🤖 {escape(response.choices[0].message.content)}")
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("image", help="Path to PCB image")
+    args = parser.parse_args()
+
+    print_banner()
+    image = preprocess_image(args.image)
+
+    rprint("[cyan]🔠 Running OCR for chip markings...[/cyan]")
+    markings = ocr_chip_markings(image)
+
+    rprint("[cyan]🔍 Searching datasheets online (for user info only)...[/cyan]")
+    for mark in markings:
+        links = search_datasheet_online(mark)
+        rprint(f"[bold]{mark}[/bold]")
+        for l in links:
+            rprint(f"  • {l}")
+
+    rprint("[cyan]🧠 Sending image + OCR to GPT-4.1...[/cyan]")
+    analysis = analyze_with_gpt(image, markings)
+    format_output(analysis)
+
+    validated = validate_analysis_gpt(analysis)
+    format_output(validated)
+
+    with open("ai_chip_analysis.json", "w") as f:
+        json.dump({"analysis": analysis, "validation": validated}, f, indent=2)
+
+    rprint("[green]✅ Results saved to ai_chip_analysis.json[/green]")
+    chat_loop(analysis)
+
+if __name__ == "__main__":
+    main()
