@@ -1,83 +1,96 @@
 # 🛡️ Overwatch-ChipAI — Visual Reconnaissance for IoT/OT Hardware
 
-> 🎯 An AI-powered CLI agent to analyze chip surfaces, detect debug ports, and uncover physical attack surfaces — before attackers do.
-
-**Overwatch-ChipAI** is a terminal-based reconnaissance tool built on GPT-4.1 Vision. It scans high-resolution images of IoT/OT hardware to identify chip types, interface points (JTAG, UART, SPI), and provides vulnerability analysis based on visual layout.
-
----
-
-## 🧠 Why?
-
-Chip surfaces are the new attack surface. Debug ports, silkscreen markings, unprotected firmware interfaces — all may open doors.
-
-This tool simulates the eyes of a seasoned hardware hacker. It helps defenders spot what they might otherwise miss.
+A single-file tool that analyzes PCB images using GPT-4.1, OCR, and online datasheet lookup.  
+Extracts IC markings, finds public datasheet links, and performs AI-based hardware security analysis — all with one command.
 
 ---
 
-## 🔧 Features
+## 🚀 Features
 
-- 🤖 GPT-4.1 Vision-powered chip & PCB analysis
-- 🔬 Pin/interface inference: UART, JTAG, SPI, I2C, SWD etc.
-- 🧩 AI-based vulnerability assessment
-- 💬 Interactive Q&A (post-analysis)
-- 🎨 Rich CLI output (with `rich`)
-- 📦 Auto JSON export of results
-- 🛠 Manual override panel for expert hints
+- 📷 OCR to extract chip markings from PCB photos  
+- 🌍 Searches Google for real datasheet links (for reference only)  
+- 🤖 GPT-4.1 analyzes the image + markings to determine component roles  
+- 🧷 Identifies potential attack surfaces (UART, JTAG, SWD, etc.)  
+- 📋 Summary tables displayed in terminal (components, surfaces, suggestions)  
+- 💬 Interactive Q&A mode with GPT  
+- 💾 Exports full results to `ai_chip_analysis.json`
 
 ---
 
-## 🛠️ Installation & Setup
-
-### 1. 📦 Dependencies
-Make sure you have Python 3.9+ and `pip` installed. Then, install required libraries:
+## 📦 Requirements
 
 ```bash
-pip install -r requirements.txt
+pip install openai opencv-python numpy pytesseract requests beautifulsoup4 rich
 ```
 
-If you don’t have a requirements.txt, you can also install manually:
+Install Tesseract OCR:
 
-```bash
-pip install openai opencv-python rich numpy
+- **macOS:** `brew install tesseract`
+- **Ubuntu:** `sudo apt install tesseract-ocr`
+- **Windows:** https://github.com/UB-Mannheim/tesseract/wiki
+
+---
+
+## 🔑 OpenAI API Key
+
+Set it inside the script:
+
+```python
+openai.api_key = "sk-..."
 ```
 
-### 2. 🔑 Set Your OpenAI API Key
-You can either:
+or use environment variable:
 
-a) Use environment variable:
 ```bash
 export OPENAI_API_KEY="sk-..."
 ```
-b) Or hardcode inside:
-```bash
-openai.api_key = "your-api-key"
-```
 
-## 🚀 Usage
+---
+
+## 🧠 Usage
 
 ```bash
-python3 SelfHack_Overwatch-ChipAI.py path/to/your_chip.jpg
-```
-You’ll get a structured vulnerability analysis based on chip layout, labels, and component positioning.
-
-## 💡 Sample Output
-<img width="2982" height="1798" alt="image" src="https://github.com/user-attachments/assets/11a16b8e-45f2-43ce-8dfd-310b05a035b8" />
-<img width="2104" height="1598" alt="image" src="https://github.com/user-attachments/assets/7aa4a90b-65f8-4b78-8df9-405a43ab0b66" />
-
-## 💬 Chat Mode
-After the AI responds, you’ll be prompted for interactive Q&A:
-
-```bash
-> What happens if I inject 5V on pin 3?
-🤖: That pin appears to be VOUT. Overvoltage injection could bypass regulation...
+python selfhack_Overwatch-ChipAI.py my_pcb.jpg
 ```
 
-## 🧠 System Prompt Logic
--The built-in prompt simulates:
--A seasoned hardware reverse engineer
--Knowledge of physical + firmware attack paths
--Ability to research chip markings online
--Inference based on silkscreen, layout, and common IC design
+You will see:
+- OCR-extracted chip IDs
+- Datasheet links
+- GPT-4.1 AI analysis
+- Terminal summary tables
+- JSON output
+- Live Q&A chat
+
+---
+
+## 📚 Example Output
+
+<img width="1932" height="844" alt="image" src="https://github.com/user-attachments/assets/2094a70e-0eb4-4319-b6f1-5c8f460b92b1" />
+<img width="2574" height="1474" alt="image" src="https://github.com/user-attachments/assets/e12f9efa-3465-46b3-8155-885cf4d7589e" />
+<img width="2342" height="1602" alt="image" src="https://github.com/user-attachments/assets/6d9e6e5b-d796-48bf-978e-b6b2388ffbf5" />
+<img width="3530" height="172" alt="image" src="https://github.com/user-attachments/assets/d0838bf0-07ba-4a92-a0ab-d456603cfbb9" />
+
+---
+
+## 💬 Q&A Chat Mode
+
+```text
+> What is the flash chip?
+🤖 Likely a 25Q32 SPI flash near the MCU.
+
+> Any RF module detected?
+🤖 No RF chip detected in the OCR results.
+```
+---
+
+## 📜 License
+
+This project is licensed under the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0).
+
+You are free to use, modify, and distribute this software under the terms of this license.
+
+Built by [SelfHack AI](https://selfhack.ai)
+
 
 ## ⚠️ Legal Note
 This tool is intended for authorized testing and research purposes only.
