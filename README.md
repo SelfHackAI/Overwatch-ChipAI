@@ -2,7 +2,6 @@
 
 <img width="1918" height="321" alt="image" src="https://github.com/user-attachments/assets/5eeea057-13d9-4502-8327-dfa64af3f8f0" />
 
-
 A single-file tool that analyzes PCB images using GPT-4.1, OCR, and online datasheet lookup.  
 Extracts IC markings, finds public datasheet links, and performs AI-based hardware security analysis — all with one command.
 
