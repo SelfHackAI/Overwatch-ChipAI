@@ -1,6 +1,6 @@
 # 🛡️ Overwatch-ChipAI — Visual Reconnaissance for IoT/OT Hardware
 
-<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/fb14a687-373f-4cda-b868-706b34c9b5e1" />
+<img width="1918" height="321" alt="image" src="https://github.com/user-attachments/assets/5eeea057-13d9-4502-8327-dfa64af3f8f0" />
 
 
 A single-file tool that analyzes PCB images using GPT-4.1, OCR, and online datasheet lookup.  
