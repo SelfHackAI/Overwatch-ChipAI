@@ -26,10 +26,31 @@ This tool simulates the eyes of a seasoned hardware hacker. It helps defenders s
 
 ---
 
-## 📦 Installation
+## 🛠️ Installation & Setup
+
+### 1. 📦 Dependencies
+Make sure you have Python 3.9+ and `pip` installed. Then, install required libraries:
+
+```bash
+pip install -r requirements.txt
+```
+
+If you don’t have a requirements.txt, you can also install manually:
 
 ```bash
 pip install openai opencv-python rich numpy
+```
+
+### 2. 🔑 Set Your OpenAI API Key
+You can either:
+
+a) Use environment variable:
+```bash
+export OPENAI_API_KEY="sk-..."
+```
+b) Or hardcode inside:
+```bash
+openai.api_key = "your-api-key"
 ```
 
 ## 🚀 Usage
