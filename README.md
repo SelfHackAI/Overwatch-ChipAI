@@ -1,4 +1,4 @@
-# 🛡️ Overwatch-ChipAI — Visual Reconnaissance for IoT/OT Hardware
+# 🛡️ Visual Reconnaissance for IoT/OT Hardware
 
 <img width="1918" height="321" alt="image" src="https://github.com/user-attachments/assets/5eeea057-13d9-4502-8327-dfa64af3f8f0" />
 
